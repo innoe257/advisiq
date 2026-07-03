@@ -1,5 +1,7 @@
 # AdvisIQ
 
+[![CI](https://github.com/innoe257/advisiq/actions/workflows/ci.yml/badge.svg)](https://github.com/innoe257/advisiq/actions/workflows/ci.yml)
+
 A multi-tenant SaaS platform for early identification of at-risk students, built on an XGBoost prediction model.
 
 > All data in this repository is synthetic (every identifier is prefixed `SYNTH`). No real student data is ever committed.
