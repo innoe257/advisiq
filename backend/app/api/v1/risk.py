@@ -15,7 +15,9 @@ from app.schemas.risk import (
     CohortRiskSummary,
     CohortTierCounts,
     RiskScoreRead,
+    StudentWithRisk,
 )
+from app.schemas.student import StudentRead
 from app.services.prediction import score_students
 
 router = APIRouter(tags=["risk"])
@@ -57,6 +59,64 @@ async def get_student_risk_scores(
         .order_by(RiskScore.scored_at.desc())
     )
     return list(result.scalars().all())
+
+
+@router.get("/risk/students", response_model=list[StudentWithRisk])
+async def list_students_with_latest_risk(
+    db: DbSession,
+    current_user: CurrentUser,
+    programme: str | None = None,
+    year_of_study: int | None = None,
+) -> list[StudentWithRisk]:
+    """Every student in the tenant paired with their most recent risk score
+    (or None if not yet scored) — the dashboard's primary feed. One query
+    rather than one risk-score lookup per student."""
+    latest_rank = func.row_number().over(
+        partition_by=RiskScore.student_id, order_by=RiskScore.scored_at.desc()
+    )
+    ranked = select(
+        RiskScore.id,
+        RiskScore.student_id,
+        RiskScore.model_version,
+        RiskScore.score,
+        RiskScore.tier,
+        RiskScore.scored_at,
+        latest_rank.label("rank"),
+    ).subquery()
+    latest_scores = select(ranked).where(ranked.c.rank == 1).subquery()
+
+    query = (
+        select(Student, latest_scores)
+        .outerjoin(latest_scores, latest_scores.c.student_id == Student.id)
+        .where(Student.tenant_id == current_user.tenant_id)
+    )
+    if programme is not None:
+        query = query.where(Student.programme == programme)
+    if year_of_study is not None:
+        query = query.where(Student.year_of_study == year_of_study)
+    query = query.order_by(Student.synth_student_code)
+
+    result = await db.execute(query)
+
+    items: list[StudentWithRisk] = []
+    for row in result.all():
+        student, score_id, score_student_id, model_version, score, tier, scored_at, _rank = row
+        risk_score = (
+            RiskScoreRead(
+                id=score_id,
+                student_id=score_student_id,
+                model_version=model_version,
+                score=score,
+                tier=tier,
+                scored_at=scored_at,
+            )
+            if score_id is not None
+            else None
+        )
+        items.append(
+            StudentWithRisk(student=StudentRead.model_validate(student), risk_score=risk_score)
+        )
+    return items
 
 
 @router.get("/risk/cohort", response_model=CohortRiskSummary)

@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.models.risk_score import Tier
+from app.schemas.student import StudentRead
 
 
 class RiskScoreRead(BaseModel):
@@ -15,6 +16,12 @@ class RiskScoreRead(BaseModel):
     score: float
     tier: Tier
     scored_at: datetime
+
+
+class StudentWithRisk(BaseModel):
+    student: StudentRead
+    risk_score: RiskScoreRead | None
+    """None if the student hasn't been scored yet."""
 
 
 class BatchScoreRequest(BaseModel):

@@ -164,3 +164,27 @@ async def test_cross_tenant_risk_score_history_returns_404(client: AsyncClient) 
         headers=auth_headers(tenant_b_tokens["access_token"]),
     )
     assert response.status_code == 404
+
+
+async def test_list_students_with_latest_risk_includes_unscored_students(
+    client: AsyncClient,
+) -> None:
+    tokens = await register(
+        client, tenant_name="SYNTH Uni A", email="admin7@example.com", role="admin"
+    )
+    token = tokens["access_token"]
+
+    await _create_student(client, token, "SYNTH-R-0014", gpa=3.5)
+
+    response = await client.get("/api/v1/risk/students", headers=auth_headers(token))
+    assert response.status_code == 200
+    items = response.json()
+    assert len(items) == 1
+    assert items[0]["student"]["synth_student_code"] == "SYNTH-R-0014"
+    assert items[0]["risk_score"] is None
+
+    await client.post("/api/v1/risk/score", json={}, headers=auth_headers(token))
+
+    response = await client.get("/api/v1/risk/students", headers=auth_headers(token))
+    items = response.json()
+    assert items[0]["risk_score"]["tier"] == "low"
