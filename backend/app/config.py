@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     log_level: str = "INFO"
+    cors_origins: list[str] = ["http://localhost:3000"]
 
     database_url: str
 
