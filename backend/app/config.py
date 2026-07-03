@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
+    # Risk scores are in [0, 1]. A score >= high_risk_threshold maps to "high",
+    # >= medium_risk_threshold (and below high) maps to "medium", else "low".
+    high_risk_threshold: float = 0.66
+    medium_risk_threshold: float = 0.33
+
+    model_version: str = "v1"
+    model_artifact_path: Path = (
+        Path(__file__).resolve().parent / "ml" / "artifacts" / "risk_model_v1.json"
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
