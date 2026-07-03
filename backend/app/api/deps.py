@@ -57,6 +57,9 @@ def require_roles(*allowed_roles: Role) -> Callable[..., Coroutine[Any, Any, Use
     return _check
 
 
+AdminUser = Annotated[User, Depends(require_roles(Role.admin))]
+
+
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
