@@ -32,7 +32,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # `uv sync` keeps the named .venv volume in step with pyproject.toml/uv.lock,
+    # since the volume persists across rebuilds and won't pick up dependency
+    # changes on its own.
+    command: sh -c "uv sync --frozen && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   advisiq_pgdata:

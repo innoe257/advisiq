@@ -29,6 +29,7 @@ frontend/out/
 .DS_Store
 .vscode/
 .idea/
+.claude/settings.local.json
 
 # Alembic
 backend/alembic/versions/__pycache__/
