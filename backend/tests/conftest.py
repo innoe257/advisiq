@@ -13,8 +13,19 @@ from sqlalchemy.ext.asyncio import (
 from app.config import get_settings
 from app.database import Base, get_db
 from app.main import app
+from app.ml.model_loader import load_model
 
 settings = get_settings()
+
+
+class StubRiskModel:
+    """Deterministic stand-in for the trained model, so tests never depend
+    on the real artifact's actual behaviour. Score is purely a function of
+    GPA (feature index 0, see FEATURE_NAMES): tests can pick a GPA and know
+    exactly which risk tier to expect."""
+
+    def predict_proba(self, feature_rows: list[list[float]]) -> list[float]:
+        return [1.0 - (row[0] / 4.0) for row in feature_rows]
 
 
 def _test_database_url() -> str:
@@ -85,6 +96,10 @@ async def db_session(test_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+    app.dependency_overrides[load_model] = lambda: StubRiskModel()
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+    app.dependency_overrides.pop(load_model, None)
