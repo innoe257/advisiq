@@ -42,4 +42,8 @@ COPY --from=builder /app/alembic.ini ./alembic.ini
 ENV PATH="/app/.venv/bin:$PATH"
 USER appuser
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form so $PORT expands (most PaaS providers, Render included, inject
+# their own port rather than using a fixed 8000) — `exec` replaces the shell
+# with uvicorn as PID 1 so it still receives SIGTERM directly for graceful
+# shutdown, instead of the shell swallowing it.
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
