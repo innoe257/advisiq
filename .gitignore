@@ -16,9 +16,12 @@ htmlcov/
 .env.*
 !.env.example
 
-# ML artifacts (large binaries, versioned separately)
+# ML artifacts — small ones (like the current synthetic demo model) are
+# committed directly; exclude anything large by ignoring the directory and
+# allow-listing specific files.
 backend/app/ml/artifacts/*
 !backend/app/ml/artifacts/.gitkeep
+!backend/app/ml/artifacts/risk_model_v1.json
 
 # Node / frontend (Phase 2)
 frontend/node_modules/
