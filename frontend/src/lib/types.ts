@@ -44,6 +44,11 @@ export interface Intervention {
   created_at: string;
 }
 
+export interface StudentWithRisk {
+  student: Student;
+  risk_score: RiskScore | null;
+}
+
 export interface CohortTierCounts {
   low: number;
   medium: number;
