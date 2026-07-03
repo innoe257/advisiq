@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # Sentry is off by default in every environment (including production)
+    # until this is explicitly set — no error reporting happens silently.
+    sentry_dsn: str | None = None
+
     database_url: str
 
     jwt_secret_key: str

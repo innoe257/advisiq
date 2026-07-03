@@ -15,6 +15,7 @@ dependencies = [
     "bcrypt>=4.1",
     "python-multipart>=0.0.12",
     "xgboost>=2.1",
+    "sentry-sdk[fastapi]>=2.0",
 ]
 
 [dependency-groups]

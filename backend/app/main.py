@@ -1,3 +1,8 @@
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,12 +12,31 @@ from app.api.v1.interventions import router as interventions_router
 from app.api.v1.risk import router as risk_router
 from app.api.v1.students import router as students_router
 from app.config import get_settings
+from app.logging_config import configure_logging
 
-app = FastAPI(title="AdvisIQ API", version="0.1.0")
+configure_logging()
+logger = logging.getLogger(__name__)
+
+settings = get_settings()
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn, environment=settings.environment, traces_sample_rate=0.1
+    )
+    logger.info("Sentry error reporting enabled")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    logger.info("AdvisIQ API starting up", extra={"environment": settings.environment})
+    yield
+
+
+app = FastAPI(title="AdvisIQ API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().cors_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
