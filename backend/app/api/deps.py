@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.student import Student
 from app.models.user import Role, User
 from app.security import InvalidTokenError, TokenType, decode_token
 
@@ -63,3 +64,15 @@ AdminUser = Annotated[User, Depends(require_roles(Role.admin))]
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+
+async def get_tenant_student_or_404(
+    db: AsyncSession, student_id: uuid.UUID, tenant_id: uuid.UUID
+) -> Student:
+    result = await db.execute(
+        select(Student).where(Student.id == student_id, Student.tenant_id == tenant_id)
+    )
+    student = result.scalar_one_or_none()
+    if student is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    return student

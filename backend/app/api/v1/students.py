@@ -3,23 +3,11 @@ import uuid
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from app.api.deps import AdminUser, CurrentUser, DbSession
+from app.api.deps import AdminUser, CurrentUser, DbSession, get_tenant_student_or_404
 from app.models.student import Student
 from app.schemas.student import StudentCreate, StudentRead, StudentUpdate
 
 router = APIRouter(prefix="/students", tags=["students"])
-
-
-async def _get_student_or_404(
-    db: DbSession, student_id: uuid.UUID, tenant_id: uuid.UUID
-) -> Student:
-    result = await db.execute(
-        select(Student).where(Student.id == student_id, Student.tenant_id == tenant_id)
-    )
-    student = result.scalar_one_or_none()
-    if student is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-    return student
 
 
 @router.post("", response_model=StudentRead, status_code=status.HTTP_201_CREATED)
@@ -66,7 +54,7 @@ async def list_students(
 
 @router.get("/{student_id}", response_model=StudentRead)
 async def get_student(student_id: uuid.UUID, db: DbSession, current_user: CurrentUser) -> Student:
-    return await _get_student_or_404(db, student_id, current_user.tenant_id)
+    return await get_tenant_student_or_404(db, student_id, current_user.tenant_id)
 
 
 @router.patch("/{student_id}", response_model=StudentRead)
@@ -76,7 +64,7 @@ async def update_student(
     db: DbSession,
     current_user: AdminUser,
 ) -> Student:
-    student = await _get_student_or_404(db, student_id, current_user.tenant_id)
+    student = await get_tenant_student_or_404(db, student_id, current_user.tenant_id)
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(student, field, value)
@@ -92,6 +80,6 @@ async def delete_student(
     db: DbSession,
     current_user: AdminUser,
 ) -> None:
-    student = await _get_student_or_404(db, student_id, current_user.tenant_id)
+    student = await get_tenant_student_or_404(db, student_id, current_user.tenant_id)
     await db.delete(student)
     await db.commit()
