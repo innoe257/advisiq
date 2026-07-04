@@ -39,11 +39,13 @@ COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/app ./app
 COPY --from=builder /app/alembic ./alembic
 COPY --from=builder /app/alembic.ini ./alembic.ini
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 ENV PATH="/app/.venv/bin:$PATH"
 USER appuser
 EXPOSE 8000
-# Shell form so $PORT expands (most PaaS providers, Render included, inject
-# their own port rather than using a fixed 8000) — `exec` replaces the shell
-# with uvicorn as PID 1 so it still receives SIGTERM directly for graceful
-# shutdown, instead of the shell swallowing it.
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# A script file (rather than an inline shell string) so $PORT expansion,
+# migrations, and the final `exec` (uvicorn takes PID 1 for correct SIGTERM
+# handling) don't depend on however faithfully a PaaS's config layer
+# reproduces shell quoting when passed through YAML.
+CMD ["./docker-entrypoint.sh"]

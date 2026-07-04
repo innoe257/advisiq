@@ -5,11 +5,11 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    # preDeployCommand isn't available on Render's free tier, so migrations
-    # run as part of the start command instead. `exec` at the end still
-    # replaces the shell with uvicorn as PID 1 for correct signal handling
-    # (same reasoning as the Dockerfile's own CMD).
-    dockerCommand: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    # No dockerCommand override: preDeployCommand isn't available on Render's
+    # free tier, and passing an inline shell string through dockerCommand
+    # turned out not to survive Render's config layer intact (the && got
+    # swallowed). The image's own CMD (docker-entrypoint.sh) already runs
+    # migrations then starts uvicorn, so the default is used as-is.
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -28,11 +28,9 @@ services:
         value: production
       - key: LOG_LEVEL
         value: INFO
-      # Placeholder — update to the real Vercel URL after the frontend is
-      # deployed (step 2 in the README's deployment section). Must be a
-      # JSON array since Settings.cors_origins is a list[str].
+      # Must be a JSON array since Settings.cors_origins is a list[str].
       - key: CORS_ORIGINS
-        value: '["https://CHANGE-ME.vercel.app"]'
+        value: '["https://advisiq.vercel.app"]'
       # Optional: paste a Sentry DSN here later to enable error reporting.
       # Left unset, Sentry never initializes at all (see app/main.py).
       - key: SENTRY_DSN
