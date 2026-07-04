@@ -5,10 +5,12 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    # No dockerCommand override needed — the Dockerfile's own CMD already
-    # respects $PORT, which Render injects at runtime (see Dockerfile).
+    # preDeployCommand isn't available on Render's free tier, so migrations
+    # run as part of the start command instead. `exec` at the end still
+    # replaces the shell with uvicorn as PID 1 for correct signal handling
+    # (same reasoning as the Dockerfile's own CMD).
+    dockerCommand: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
     healthCheckPath: /health
-    preDeployCommand: alembic upgrade head
     envVars:
       - key: DATABASE_URL
         fromDatabase:
