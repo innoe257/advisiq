@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # In Docker, env vars are injected directly by docker-compose's `env_file:` and this
@@ -22,6 +23,17 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
 
     database_url: str
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_asyncpg_driver(cls, value: str) -> str:
+        # Managed Postgres add-ons (Render, Heroku, ...) hand out a plain
+        # postgresql:// or postgres:// URL for libpq/psycopg — but our engine
+        # is async, so it needs the asyncpg dialect explicit in the scheme.
+        for prefix in ("postgresql://", "postgres://"):
+            if value.startswith(prefix):
+                return "postgresql+asyncpg://" + value[len(prefix) :]
+        return value
 
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
